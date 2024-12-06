@@ -1,0 +1,79 @@
+using Unity.VisualScripting; // Includes support for Unity's Visual Scripting system.
+using UnityEngine;           // Includes Unity's core API, such as MonoBehaviour and GameObjects.
+using UnityEngine.InputSystem; // Includes the new Input System for managing player inputs.
+
+public class PlayerMovement : MonoBehaviour
+{
+    public Rigidbody2D rb; // Reference to the Rigidbody2D component for applying physics-based movements.
+    [SerializeField] float moveSpeed = 10f; // Speed multiplier for horizontal movement, configurable in the Inspector.
+    [SerializeField] float jumpSpeed = 10f; // Force applied for jumping, configurable in the Inspector.
+    private Vector2 moveInput; // Stores the player's movement input (horizontal direction).
+    private int jumpCount = 0;  // Tracks the number of jumps performed, reset upon landing.
+    public const int maxJumps = 3; // Sets the maximum number of allowed jumps (ground jump + double jump).
+    private bool isGrounded = true; // Tracks whether the player is on the ground.
+
+    // Input references for movement, attack, and jump actions.
+    public InputActionReference move; // Reference to the "move" action defined in the Input Action Asset.
+    public InputActionReference attack; // Reference to the "attack" action defined in the Input Action Asset.
+    public InputActionReference jump; // Reference to the "jump" action defined in the Input Action Asset.
+
+    // Called once before the first Update, used for initialization (currently unused here).
+    void Start()
+    {
+        
+    }
+
+    // Called once per frame, processes input for movement.
+    void Update()
+    {
+        moveInput = move.action.ReadValue<Vector2>(); // Reads the current input value for movement (e.g., from a joystick or keyboard).
+    }
+
+    // Called at fixed intervals, applies physics-based movement.
+    private void FixedUpdate()
+    {
+        // Sets the horizontal velocity based on player input, preserving the vertical velocity.
+        rb.linearVelocity = new Vector2(moveInput.x * moveSpeed, rb.linearVelocity.y);
+    }
+
+    // Registers input event listeners when the object is enabled.
+    private void OnEnable()
+    {
+        attack.action.started += Attack; // Subscribes the "Attack" method to the "started" event of the attack action.
+        jump.action.started += Jump; // Subscribes the "Jump" method to the "started" event of the jump action.
+    }
+
+    // Unregisters input event listeners when the object is disabled.
+    private void OnDisable()
+    {
+        attack.action.started -= Attack; // Unsubscribes the "Attack" method to prevent event duplication or memory leaks.
+        jump.action.started -= Jump; // Unsubscribes the "Jump" method for the same reasons.
+    }
+
+    // Triggered when the player presses the attack button.
+    private void Attack(InputAction.CallbackContext context)
+    {
+        Debug.Log("Attacked with Weapon"); // Logs a message for debugging purposes.
+    }
+
+    // Triggered when the player presses the jump button.
+    private void Jump(InputAction.CallbackContext context)
+    {
+        if (jumpCount < maxJumps) // Checks if the player has remaining jumps.
+        {
+            rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpSpeed); // Applies upward velocity for the jump.
+            jumpCount++; // Increments the jump count to track how many jumps have been performed.
+            Debug.Log($"Jumped: {jumpCount}/{maxJumps}"); // Logs the current jump count for debugging.
+        }
+    }
+
+    // Called when the player collides with another object.
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (collision.gameObject.CompareTag("Ground")) // Checks if the collision is with an object tagged as "Ground."
+        {
+            isGrounded = true; // Marks the player as grounded, allowing them to jump again.
+            jumpCount = 0; // Resets the jump count upon landing on the ground.
+        }
+    }
+}
